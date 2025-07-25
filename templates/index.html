@@ -1,0 +1,148 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whiteboard Animation Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        textarea { height: 100px; resize: vertical; }
+        button { background: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .status { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .progress { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        video { width: 100%; max-width: 600px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🎨 Whiteboard Animation Generator</h1>
+    <p>Create engaging whiteboard animations from your text prompts using AI!</p>
+    
+    <form id="animationForm">
+        <div class="form-group">
+            <label for="prompt">Animation Prompt:</label>
+            <textarea id="prompt" name="prompt" placeholder="Describe what you want to animate. For example: 'Explain how photosynthesis works in plants'" required></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="style">Animation Style:</label>
+            <select id="style" name="style">
+                <option value="whiteboard">Whiteboard</option>
+                <option value="chalkboard">Chalkboard</option>
+                <option value="sketch">Sketch</option>
+                <option value="minimal">Minimal</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="duration">Duration (seconds):</label>
+            <input type="number" id="duration" name="duration" min="10" max="300" value="30">
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="voiceOver" name="voiceOver"> Add Voice-over
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="backgroundMusic" name="backgroundMusic"> Add Background Music
+            </label>
+        </div>
+        
+        <button type="submit">Generate Animation</button>
+    </form>
+    
+    <div id="status" class="status" style="display: none;"></div>
+    <div id="result" style="display: none;">
+        <h3>Your Animation is Ready!</h3>
+        <video id="resultVideo" controls></video>
+        <br>
+        <a id="downloadLink" href="#" download>Download Video</a>
+    </div>
+
+    <script>
+        let currentTaskId = null;
+        let statusInterval = null;
+
+        document.getElementById('animationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {
+                prompt: formData.get('prompt'),
+                style: formData.get('style'),
+                duration: parseInt(formData.get('duration')),
+                voice_over: formData.get('voiceOver') === 'on',
+                background_music: formData.get('backgroundMusic') === 'on'
+            };
+            
+            try {
+                showStatus('Starting animation creation...', 'progress');
+                
+                const response = await fetch('/api/create-animation', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    currentTaskId = result.task_id;
+                    checkStatus();
+                } else {
+                    showStatus(`Error: ${result.detail}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        });
+
+        async function checkStatus() {
+            if (!currentTaskId) return;
+            
+            try {
+                const response = await fetch(`/api/task-status/${currentTaskId}`);
+                const status = await response.json();
+                
+                if (status.status === 'PENDING' || status.status === 'PROGRESS') {
+                    showStatus(`${status.message} (${status.progress}%)`, 'progress');
+                    statusInterval = setTimeout(checkStatus, 2000);
+                } else if (status.status === 'SUCCESS') {
+                    showStatus('Animation created successfully!', 'success');
+                    showResult(status.result.video_url);
+                } else {
+                    showStatus(`Failed: ${status.message}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`Error checking status: ${error.message}`, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+
+        function showResult(videoUrl) {
+            const resultDiv = document.getElementById('result');
+            const video = document.getElementById('resultVideo');
+            const downloadLink = document.getElementById('downloadLink');
+            
+            video.src = videoUrl;
+            downloadLink.href = videoUrl;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
