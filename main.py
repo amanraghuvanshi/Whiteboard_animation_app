@@ -1,22 +1,39 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi import Request
 import uuid
 import os
 
 from models.schemas import VisualRequest, VisualResponse
 from services.gemini_service import GeminiService
 from services.visual_service import VisualService
+from utils.config import settings
 
-app = FastAPI()
+app = FastAPI(
+    title="Whiteboard Visual Generator API",
+    description="AI-powered visual storyboard generator with web interface",
+    version="1.0.0"
+)
+
+# Mount static files and templates
+app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
+templates = Jinja2Templates(directory="templates")
+
+# Initialize services
 gemini_service = GeminiService()
 visual_service = VisualService()
 
 @app.get("/", response_class=HTMLResponse)
-def home():
-    return "<h2>Whiteboard Visual Generator</h2>"
+async def home(request: Request):
+    """Render the enhanced home page with image viewing capability"""
+    return templates.TemplateResponse("visual_index.html", {"request": request})
 
 @app.post("/api/create-visuals", response_model=VisualResponse)
 def create_visuals(req: VisualRequest):
+    """Create visual storyboard with enhanced error handling"""
     print(f"Received request: {req}")
     
     try:
@@ -58,10 +75,36 @@ def create_visuals(req: VisualRequest):
         
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-
 @app.get("/outputs/images/{filename}")
-def get_image(filename: str):
-    full_path = os.path.join("outputs/images", filename)
+async def get_image(filename: str):
+    """Serve generated images with proper headers"""
+    full_path = os.path.join(settings.IMAGES_DIR, filename)
+    
     if not os.path.exists(full_path):
-        raise HTTPException(status_code=404)
-    return FileResponse(full_path)
+        raise HTTPException(status_code=404, detail="Image not found")
+    
+    return FileResponse(
+        full_path,
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=3600"}
+    )
+
+@app.get("/api/styles")
+async def get_visual_styles():
+    """Get available visual styles"""
+    return {
+        "styles": [
+            {"value": "whiteboard", "label": "Whiteboard"},
+            {"value": "sketch", "label": "Sketch"},
+            {"value": "infographic", "label": "Infographic"},
+            {"value": "minimal", "label": "Minimal"}
+        ]
+    }
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "visual_generator"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
