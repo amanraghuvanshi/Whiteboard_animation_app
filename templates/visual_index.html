@@ -1,0 +1,425 @@
+<!-- templates/visual_index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whiteboard Visual Storyboard Generator</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 { 
+            color: #2c3e50; 
+            text-align: center; 
+            margin-bottom: 10px; 
+            font-size: 2.5em;
+        }
+        .subtitle { 
+            text-align: center; 
+            color: #7f8c8d; 
+            margin-bottom: 40px; 
+            font-size: 1.1em;
+        }
+        .form-group { 
+            margin-bottom: 25px; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            color: #333; 
+            font-size: 1.1em;
+        }
+        input, select, textarea { 
+            width: 100%; 
+            padding: 15px; 
+            border: 2px solid #e1e8ed; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            transition: border-color 0.3s ease;
+        }
+        input:focus, select:focus, textarea:focus { 
+            border-color: #667eea; 
+            outline: none; 
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        textarea { 
+            height: 120px; 
+            resize: vertical; 
+            font-family: inherit;
+        }
+        .generate-btn { 
+            background: linear-gradient(135deg, #667eea, #764ba2); 
+            color: white; 
+            padding: 18px 40px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 18px; 
+            font-weight: 600; 
+            width: 100%;
+            transition: transform 0.2s ease;
+        }
+        .generate-btn:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status { 
+            margin-top: 30px; 
+            padding: 20px; 
+            border-radius: 8px; 
+            font-weight: 500;
+        }
+        .success { 
+            background: linear-gradient(135deg, #d4edda, #c3e6cb); 
+            color: #155724; 
+            border: 2px solid #c3e6cb; 
+        }
+        .error { 
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb); 
+            color: #721c24; 
+            border: 2px solid #f5c6cb; 
+        }
+        .progress { 
+            background: linear-gradient(135deg, #d1ecf1, #bee5eb); 
+            color: #0c5460; 
+            border: 2px solid #bee5eb; 
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        .results-section {
+            margin-top: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+        }
+        .results-title {
+            color: #2c3e50;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .image-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 25px;
+        }
+        .image-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .image-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .image-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .image-card img:hover {
+            transform: scale(1.02);
+        }
+        .image-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        .image-description {
+            color: #6c757d;
+            font-size: 0.9em;
+            line-height: 1.4;
+            margin-bottom: 15px;
+        }
+        .download-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: transform 0.2s ease;
+        }
+        .download-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(40, 167, 69, 0.3);
+        }
+        
+        /* Modal for full-size image viewing */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            animation: fadeIn 0.3s ease;
+        }
+        .modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 8px;
+        }
+        .close {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1001;
+        }
+        .close:hover {
+            color: #ccc;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Whiteboard Visual Storyboard Generator</h1>
+        <p class="subtitle">Create engaging visual storyboards from your text prompts using AI!</p>
+        
+        <form id="visualForm">
+            <div class="form-group">
+                <label for="prompt">Content Prompt:</label>
+                <textarea id="prompt" name="prompt" placeholder="Describe what you want to visualize. For example: 'Explain the water cycle' or 'Show the steps to start a business'" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="style">Visual Style:</label>
+                <select id="style" name="style">
+                    <option value="whiteboard">Whiteboard</option>
+                    <option value="sketch">Sketch</option>
+                    <option value="infographic">Infographic</option>
+                    <option value="minimal">Minimal</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="panels">Number of Panels:</label>
+                <input type="number" id="panels" name="panels" min="1" max="9" value="4">
+            </div>
+            
+            <button type="submit" class="generate-btn" id="generateBtn">
+                Generate Visual Storyboard
+            </button>
+        </form>
+        
+        <div id="status" class="status" style="display: none;">
+            <div id="statusMessage"></div>
+            <div class="progress-bar" id="progressBar" style="display: none;">
+                <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+            </div>
+        </div>
+        
+        <div id="results" class="results-section" style="display: none;">
+            <h3 class="results-title">Your Visual Storyboard is Ready! 🎉</h3>
+            <div id="imageGallery" class="image-gallery"></div>
+        </div>
+    </div>
+
+    <!-- Modal for full-size image viewing -->
+    <div id="imageModal" class="modal">
+        <span class="close" id="closeModal">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+
+    <script>
+        let isGenerating = false;
+
+        document.getElementById('visualForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (isGenerating) return;
+            
+            const formData = new FormData(e.target);
+            const data = {
+                prompt: formData.get('prompt'),
+                style: formData.get('style'),
+                panels: parseInt(formData.get('panels'))
+            };
+            
+            try {
+                isGenerating = true;
+                const generateBtn = document.getElementById('generateBtn');
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = '<span class="loading-spinner"></span>Generating...';
+                
+                showStatus('Creating your visual storyboard...', 'progress', 10);
+                
+                const response = await fetch('/api/create-visuals', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showStatus('Storyboard created successfully!', 'success', 100);
+                    displayResults(result);
+                } else {
+                    showStatus(`Error: ${result.detail}`, 'error', 0);
+                }
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error', 0);
+            } finally {
+                isGenerating = false;
+                const generateBtn = document.getElementById('generateBtn');
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = 'Generate Visual Storyboard';
+            }
+        });
+
+        function showStatus(message, type, progress = 0) {
+            const statusDiv = document.getElementById('status');
+            const statusMessage = document.getElementById('statusMessage');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            
+            statusMessage.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            
+            if (type === 'progress') {
+                progressBar.style.display = 'block';
+                progressFill.style.width = `${progress}%`;
+            } else {
+                progressBar.style.display = 'none';
+            }
+        }
+
+        function displayResults(result) {
+            const resultsDiv = document.getElementById('results');
+            const gallery = document.getElementById('imageGallery');
+            
+            gallery.innerHTML = '';
+            
+            if (result.panels && result.image_paths) {
+                result.panels.forEach((panel, index) => {
+                    const imageUrl = result.image_paths[index];
+                    if (imageUrl) {
+                        const card = createImageCard(panel, imageUrl, index + 1);
+                        gallery.appendChild(card);
+                    }
+                });
+                
+                resultsDiv.style.display = 'block';
+                resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function createImageCard(panel, imageUrl, panelNumber) {
+            const card = document.createElement('div');
+            card.className = 'image-card';
+            
+            card.innerHTML = `
+                <img src="${imageUrl}" alt="Panel ${panelNumber}: ${panel.title}" onclick="openModal('${imageUrl}', '${panel.title}')">
+                <div class="image-title">Panel ${panelNumber}: ${panel.title}</div>
+                <div class="image-description">${panel.description}</div>
+                <a href="${imageUrl}" download="panel_${panelNumber}.png" class="download-btn">Download Panel</a>
+            `;
+            
+            return card;
+        }
+
+        function openModal(imageSrc, title) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            
+            modal.style.display = 'block';
+            modalImg.src = imageSrc;
+            modalImg.alt = title;
+        }
+
+        // Modal close functionality
+        document.getElementById('closeModal').addEventListener('click', function() {
+            document.getElementById('imageModal').style.display = 'none';
+        });
+
+        // Close modal when clicking outside the image
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.getElementById('imageModal').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

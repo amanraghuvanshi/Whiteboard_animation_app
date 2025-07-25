@@ -17,15 +17,47 @@ def home():
 
 @app.post("/api/create-visuals", response_model=VisualResponse)
 def create_visuals(req: VisualRequest):
-    task_id = str(uuid.uuid4())
-    panels = gemini_service.generate_visual_storyboard(req.prompt, req.style, req.panels)
-    image_paths = visual_service.create_panels(panels, req.style, task_id)
-    img_urls = [f"/outputs/images/{os.path.basename(p)}" for p in image_paths]
-    return VisualResponse(
-        panels=panels,
-        image_paths=img_urls,
-        message="Panels generated successfully"
-    )
+    print(f"Received request: {req}")
+    
+    try:
+        task_id = str(uuid.uuid4())
+        print(f"Generated task ID: {task_id}")
+        
+        # Generate panels with Gemini
+        print("Calling Gemini service...")
+        panels = gemini_service.generate_visual_storyboard(req.prompt, req.style, req.panels)
+        print(f"Gemini returned {len(panels)} panels")
+        
+        if not panels:
+            print("Warning: No panels returned from Gemini")
+            return VisualResponse(
+                panels=[],
+                image_paths=[],
+                message="Failed to generate panels from prompt"
+            )
+        
+        # Create visual images
+        print("Calling visual service...")
+        image_paths = visual_service.create_panels(panels, req.style, task_id)
+        print(f"Visual service created {len(image_paths)} images")
+        
+        # Convert to URLs
+        img_urls = [f"/outputs/images/{os.path.basename(p)}" for p in image_paths]
+        print(f"Generated URLs: {img_urls}")
+        
+        return VisualResponse(
+            panels=panels,
+            image_paths=img_urls,
+            message=f"Successfully generated {len(panels)} panels and {len(image_paths)} images"
+        )
+        
+    except Exception as e:
+        print(f"Error in create_visuals: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
 
 @app.get("/outputs/images/{filename}")
 def get_image(filename: str):
